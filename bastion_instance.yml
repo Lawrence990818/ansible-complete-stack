@@ -1,0 +1,53 @@
+---
+- name: Setup Vprofile Bastion Host
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Import VPC setup Variable
+      include_vars: vars/vpc_setup
+
+    - name: Import VPC output Variables
+      include_vars: vars/output_vars
+    
+    - name: Create vprofile ec2 key
+      ec2_key:
+        name: vprofile-key
+        region: "{{ region }}"
+      register: key_out
+
+    - name: Save private key into file bastion-key.pem
+      copy:
+        content: "{{ key_out.key.private_key }}"
+        dest: "./bastion-key.pem"
+        mode: 0600
+      when: key_out.changed
+    
+    - name: Create Sec Grp for bastion host
+      ec2_group:
+        name: Bastion-host
+        description: All port 22 from everywhere and all ports within sg
+        region: "{{ region }}"
+        vpc_id: "{{ vpcid }}"
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: "{{ MYIP }}"
+      register: BastionSG_out
+    
+    - name: Create Bastion Host
+      ec2_instance:
+        key_name: vprofile-key
+        region: "{{ region }}"
+        instance_type: t2.micro
+        image_id: "{{ bastion_ami }}"  # Ensure this is a valid AMI ID string
+        wait: yes
+        wait_timeout: 300
+        instance_tags:
+          Name: "Bastion_Host"
+          Project: Vprofile
+          Owner: DevOps Team
+        group_id: "{{ BastionSG_out.group_id }}"
+        vpc_subnet_id: "{{ pubsub1id }}"
+      register: bastionHost_out
