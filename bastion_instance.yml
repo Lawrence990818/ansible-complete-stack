@@ -38,16 +38,16 @@
     
     - name: Create Bastion Host
       ec2_instance:
-        key_name: vprofile-key
+        key_name: "vprofile-key"
         region: "{{ region }}"
         instance_type: t2.micro
-        image_id: "{{ bastion_ami }}"  # Ensure this is a valid AMI ID string
-        wait: yes
+        image_id: ami-00a929b66ed6e0de6  # Ensure this is a valid AMI ID string
+        wait: true
         wait_timeout: 300
-        instance_tags:
+        tags:
           Name: "Bastion_Host"
           Project: Vprofile
           Owner: DevOps Team
-        group_id: "{{ BastionSG_out.group_id }}"
+        security_group: "{{ BastionSG_out.group_id }}"
         vpc_subnet_id: "{{ pubsub1id }}"
       register: bastionHost_out
